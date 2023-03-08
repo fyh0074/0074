@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# 服务器列表
+server_list=("server1" "server2" "server3")
+
+# 应用列表
+app_list=("app1" "app2" "app3")
+
+# 日期
+date=$(date +%Y%m%d)
+
+for server in "${server_list[@]}"; do
+  for app in "${app_list[@]}"; do
+    # 获取日志路径
+    log_path="/var/log/$app"
+
+    # 压缩日志
+    tar -czf "$app"_"$server"_"$date".tar.gz "$log_path"
+
+    # 拷贝到集中服务器
+    scp "$app"_"$server"_"$date".tar.gz user@central_server:/path/to/destination
+
+    # 删除原服务器上的压缩包
+    rm "$app"_"$server"_"$date".tar.gz
+  done
+done
