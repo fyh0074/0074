@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# 声明变量
+SERVERS=("server1" "server2" "server3")
+USERNAME="username"
+PASSWORD="password"
+LOGPATH="/var/log/nginx/access.log"
+DESTINATION="/home/username/logs"
+
+# 循环遍历服务器列表
+for server in ${SERVERS[@]}
+do
+  # 连接服务器并打包日志文件
+  sshpass -p $PASSWORD ssh $USERNAME@$server "tar czf access.log.tar.gz $LOGPATH"
+  
+  # 拷贝压缩包到集中服务器
+  scp $USERNAME@$server:/path/to/access.log.tar.gz $DESTINATION/$server.tar.gz
+  
+  # 在远程服务器上删除压缩包
+  sshpass -p $PASSWORD ssh $USERNAME@$server "rm access.log.tar.gz"
+done
