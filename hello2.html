@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>HTTP 请求工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f2f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        label {
+            display: block;
+            margin-top: 20px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, select, textarea, button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        textarea {
+            resize: vertical;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 20px;
+            font-size: 18px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #response {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        .info {
+            border-color: #2196F3;
+            background-color: #e7f3fe;
+            color: #0b75c9;
+        }
+        .success {
+            border-color: #4CAF50;
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        .error {
+            border-color: #f44336;
+            background-color: #ffebee;
+            color: #c62828;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>HTTP 请求工具</h1>
+        <form id="httpForm">
+            <label for="url">请求 URL:</label>
+            <input type="text" id="url" name="url" value="http://localhost:8080/example/api/connection" placeholder="https://api.example.com/endpoint" required>
+
+            <label for="method">请求方法:</label>
+            <select id="method" name="method">
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+                <!-- 可以根据需要添加更多方法 -->
+            </select>
+
+            <label for="headers">请求头 (JSON 格式，可选):</label>
+            <textarea id="headers" name="headers" rows="3" placeholder='例如: { "Content-Type": "application/json" }'></textarea>
+
+            <label for="params">请求参数 (JSON 格式，可选):</label>
+            <textarea id="params" name="params" rows="5" placeholder='例如: { "key1": "value1", "key2": "value2" }'></textarea>
+
+            <button type="submit">发送请求</button>
+        </form>
+
+        <div id="response"></div>
+    </div>
+
+    <script>
+        document.getElementById('httpForm').addEventListener('submit', function(e) {
+            e.preventDefault(); // 防止表单默认提交行为
+
+            const url = document.getElementById('url').value.trim();
+            const method = document.getElementById('method').value;
+            const headersInput = document.getElementById('headers').value.trim();
+            const paramsInput = document.getElementById('params').value.trim();
+            let headers = {};
+            let params = {};
+
+            // 解析请求头
+            if (headersInput) {
+                try {
+                    headers = JSON.parse(headersInput);
+                } catch (error) {
+                    displayResponse('请求头格式无效，请输入有效的 JSON 格式。', 'error');
+                    return;
+                }
+            }
+
+            // 解析请求参数
+            if (paramsInput) {
+                try {
+                    params = JSON.parse(paramsInput);
+                } catch (error) {
+                    displayResponse('请求参数格式无效，请输入有效的 JSON 格式。', 'error');
+                    return;
+                }
+            }
+
+            if (method === 'GET') {
+                // 构建带有查询参数的 URL
+                const queryString = new URLSearchParams(params).toString();
+                const finalURL = queryString ? `${url}?${queryString}` : url;
+
+                // 在新窗口中打开 URL
+                window.open(finalURL, '_blank');
+
+                displayResponse('GET 请求已在新窗口中打开。', 'success');
+            } else if (method === 'POST') {
+                // 创建一个隐藏的表单
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = url;
+                form.target = '_blank'; // 在新窗口中提交
+
+                // 添加请求头作为隐藏字段（注意：浏览器不支持自定义请求头通过表单提交）
+                // 如果需要发送特定的请求头，推荐使用 fetch 方法
+                for (const key in headers) {
+                    if (headers.hasOwnProperty(key)) {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = key;
+                        input.value = headers[key];
+                        form.appendChild(input);
+                    }
+                }
+
+                // 添加请求参数作为隐藏字段
+                for (const key in params) {
+                    if (params.hasOwnProperty(key)) {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = key;
+                        input.value = params[key];
+                        form.appendChild(input);
+                    }
+                }
+
+                // 将表单添加到 body 并提交
+                document.body.appendChild(form);
+                form.submit();
+                document.body.removeChild(form);
+
+                displayResponse('POST 请求已在新窗口中提交。', 'success');
+            } else {
+                displayResponse('暂不支持的请求方法。', 'error');
+            }
+        });
+
+        /**
+         * 显示响应结果
+         * @param {string} message - 要显示的消息
+         * @param {string} type - 消息类型：info, success, error
+         */
+        function displayResponse(message, type) {
+            const responseDiv = document.getElementById('response');
+            responseDiv.textContent = message;
+            responseDiv.className = ''; // 清除之前的类
+
+            if (type === 'success') {
+                responseDiv.classList.add('success');
+            } else if (type === 'error') {
+                responseDiv.classList.add('error');
+            } else {
+                responseDiv.classList.add('info');
+            }
+        }
+    </script>
+</body>
+</html>
