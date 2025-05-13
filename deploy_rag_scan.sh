@@ -20,17 +20,17 @@ mkdir -p /var/lib/clamav
 chown -R clamav:clamav /var/lib/clamav
 chmod -R 755 /var/lib/clamav
 
-# 确保 PID 目录存在且有正确的权限
+# PIDディレクトリが存在し、適切な権限を持っていることを確認します
 mkdir -p /run/clamav
 chown -R clamav:clamav /run/clamav
 chmod -R 755 /run/clamav
 
-# 检查 PID 文件，如果存在则删除
+# PIDファイルをチェックし、存在する場合は削除します
 if [ -f /run/clamav/clamd.pid ]; then
     rm -f /run/clamav/clamd.pid
 fi
 
-# 确保 ClamAV 用户可以写入 PID 目录
+# ClamAVユーザーがPIDディレクトリに書き込めるようにします
 touch /run/clamav/clamd.pid
 chown clamav:clamav /run/clamav/clamd.pid
 chmod 644 /run/clamav/clamd.pid
@@ -121,7 +121,7 @@ LOG_FILE="/var/log/rag/rag_drives.log"
 LOG_DIR="/var/log/rag"
 LOCK_FILE="/tmp/scan_rag_drives.lock"
 
-# Make sure log directory exists and has proper permissions
+# ログディレクトリが存在し、適切な権限を持っていることを確認します
 mkdir -p "$LOG_DIR"
 touch "$LOG_FILE"
 
@@ -130,13 +130,13 @@ if [ -e "$LOCK_FILE" ]; then
     exit 1
 fi
 
-# 检查目录是否存在，如果不存在则直接退出
+# ディレクトリが存在するかどうかを確認し、存在しない場合は終了します
 if [ ! -d "$SCAN_TARGET" ]; then
     echo "$(date): Scan target directory does not exist, skipping scan." >> "$LOG_FILE"
     exit 0
 fi
 
-# 检查是否有最近修改的文件
+# 最近変更されたファイルがあるかどうかを確認します
 if ! find "$SCAN_TARGET" -type f -mmin -2 | grep -q .; then
     echo "$(date): No recent changes, skipping scan." >> "$LOG_FILE"
     exit 0
@@ -167,7 +167,7 @@ echo "  - サービスの状態を確認するには、以下のコマンドを�
 echo "    - service clamav-daemon status"
 echo "    - service cron status"
 
-# 確認のため、既存のパーミッションを修正
+# 既存の権限を確認するために
 echo "Ensuring correct permissions on log files..."
 mkdir -p "$LOG_DIR"
 touch "$LOG_FILE"
