@@ -20,9 +20,25 @@ mkdir -p /var/lib/clamav
 chown -R clamav:clamav /var/lib/clamav
 chmod -R 755 /var/lib/clamav
 
+# 确保 PID 目录存在且有正确的权限
+mkdir -p /run/clamav
+chown -R clamav:clamav /run/clamav
+chmod -R 755 /run/clamav
+
+# 检查 PID 文件，如果存在则删除
+if [ -f /run/clamav/clamd.pid ]; then
+    rm -f /run/clamav/clamd.pid
+fi
+
+# 确保 ClamAV 用户可以写入 PID 目录
+touch /run/clamav/clamd.pid
+chown clamav:clamav /run/clamav/clamd.pid
+chmod 644 /run/clamav/clamd.pid
+
 # ClamAVデーモンを起動
 echo "Starting ClamAV daemon..."
 service clamav-daemon stop || true
+sleep 2
 service clamav-daemon start || /etc/init.d/clamav-daemon start
 
 # サービスの状態を確認
@@ -61,10 +77,11 @@ touch "$LOG_FILE"
 
 # ディレクトリとファイルの権限を設定
 chown -R ragadmin:clamav "$SCAN_DIR"
-chown ragadmin:clamav "$LOG_FILE"
+chown -R ragadmin:ragadmin "$LOG_DIR"
+chown ragadmin:ragadmin "$LOG_FILE"
 chmod 775 "$SCAN_DIR"
-chmod 664 "$LOG_FILE"
 chmod 775 "$LOG_DIR"
+chmod 664 "$LOG_FILE"
 
 # メインスクリプトを書き込み
 cat <<'EOF' > "$WRAPPER_SCRIPT"
@@ -72,14 +89,23 @@ cat <<'EOF' > "$WRAPPER_SCRIPT"
 SCAN_USER="ragadmin"
 SCAN_SCRIPT="/usr/local/bin/scan_as_ragadmin.sh"
 LOG_FILE="/var/log/rag/rag_drives.log"
+LOG_DIR="/var/log/rag"
 DATE_SUFFIX=$(date +%Y-%U)
 OLD_LOG="${LOG_FILE}.${DATE_SUFFIX}"
 
-mkdir -p /var/log/rag
+mkdir -p "$LOG_DIR"
+touch "$LOG_FILE"
+chown -R "$SCAN_USER":"$SCAN_USER" "$LOG_DIR"
+chown "$SCAN_USER":"$SCAN_USER" "$LOG_FILE"
+chmod 775 "$LOG_DIR"
+chmod 664 "$LOG_FILE"
 
 if [ -f "$LOG_FILE" ]; then
     if [ ! -f "$OLD_LOG" ]; then
         mv "$LOG_FILE" "$OLD_LOG"
+        touch "$LOG_FILE"
+        chown "$SCAN_USER":"$SCAN_USER" "$LOG_FILE"
+        chmod 664 "$LOG_FILE"
     fi
 fi
 
@@ -92,20 +118,25 @@ cat <<'EOF' > "$USER_SCRIPT"
 #!/bin/bash
 SCAN_TARGET="/home/ragadmin/thinclient_drives/GUACFS"
 LOG_FILE="/var/log/rag/rag_drives.log"
+LOG_DIR="/var/log/rag"
 LOCK_FILE="/tmp/scan_rag_drives.lock"
+
+# Make sure log directory exists and has proper permissions
+mkdir -p "$LOG_DIR"
+touch "$LOG_FILE"
 
 if [ -e "$LOCK_FILE" ]; then
     echo "$(date): Already running, skipping..." >> "$LOG_FILE"
     exit 1
 fi
 
+# 检查目录是否存在，如果不存在则直接退出
 if [ ! -d "$SCAN_TARGET" ]; then
-    echo "$(date): Scan target directory does not exist, creating..." >> "$LOG_FILE"
-    mkdir -p "$SCAN_TARGET"
-    chown ragadmin:clamav "$SCAN_TARGET"
-    chmod 775 "$SCAN_TARGET"
+    echo "$(date): Scan target directory does not exist, skipping scan." >> "$LOG_FILE"
+    exit 0
 fi
 
+# 检查是否有最近修改的文件
 if ! find "$SCAN_TARGET" -type f -mmin -2 | grep -q .; then
     echo "$(date): No recent changes, skipping scan." >> "$LOG_FILE"
     exit 0
@@ -135,4 +166,15 @@ echo "  - GUACFSディレクトリの更新ファイルを毎分自動チェッ�
 echo "  - サービスの状態を確認するには、以下のコマンドを使用してください："
 echo "    - service clamav-daemon status"
 echo "    - service cron status"
+
+# 確認のため、既存のパーミッションを修正
+echo "Ensuring correct permissions on log files..."
+mkdir -p "$LOG_DIR"
+touch "$LOG_FILE"
+chown -R ragadmin:ragadmin "$LOG_DIR"
+chown ragadmin:ragadmin "$LOG_FILE"
+chmod 775 "$LOG_DIR"
+chmod 664 "$LOG_FILE"
+
+echo "Log file permissions have been fixed."
 
