@@ -1,0 +1,18 @@
+一、最常见的提示符类型
+类型	示例	特点
+普通用户	username@hostname:~$	$ 结尾，表示普通用户
+root 用户	root@hostname:~#	# 结尾，表示 root 用户
+简化版	bash-5.2$	不显示用户名/路径，只显示 shell 版本
+仅路径	~/project $	只显示当前路径
+完全最小化	$	只保留符号，简洁风格
+
+
+常见 Linux 发行版默认提示符对比表
+发行版	普通用户默认提示符	root 用户默认提示符	说明
+Ubuntu	username@hostname:~$	root@hostname:~#	使用 user@host:cwd 格式，目录显示为 ~（家目录简写），结尾 $ 或 #
+Debian	username@hostname:~$	root@hostname:~#	与 Ubuntu 类似，Debian 是 Ubuntu 的上游
+CentOS / RHEL	[username@hostname ~]$	[root@hostname ~]#	外层带方括号，路径简写 ~，区别于 Ubuntu 的冒号 :
+Fedora	[username@hostname]$	[root@hostname]#	默认不显示目录，只显示 user@host；比 CentOS 更简化
+openSUSE	username@hostname:~>	root@hostname:~#	普通用户结尾是 >，不是 $，风格与众不同
+Arch Linux	[username@hostname cwd]$	[root@hostname cwd]#	默认带路径，外层方括号
+Alpine Linux	username@hostname:~$	root@hostname:~#	极简风格，与 Debian/Ubuntu 类似
